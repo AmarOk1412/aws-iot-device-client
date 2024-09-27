@@ -137,10 +137,10 @@ void SampleShadowFeature::updateNamedShadowDeltaHandler(
     Aws::Crt::UUID uuid;
     updateNamedShadowRequest.ClientToken = uuid.ToString();
 
-    shadowClient->PublishUpdateNamedShadow(
-        updateNamedShadowRequest,
-        AWS_MQTT_QOS_AT_LEAST_ONCE,
-        std::bind(&SampleShadowFeature::ackUpdateNamedShadowStatus, this, std::placeholders::_1));
+    //shadowClient->PublishUpdateNamedShadow(
+    //    updateNamedShadowRequest,
+    //    AWS_MQTT_QOS_AT_LEAST_ONCE,
+    //    std::bind(&SampleShadowFeature::ackUpdateNamedShadowStatus, this, std::placeholders::_1));
 }
 
 void SampleShadowFeature::ackUpdateNamedShadowStatus(int ioError) const
@@ -357,6 +357,7 @@ void SampleShadowFeature::readAndUpdateShadowFromFile()
 {
 
     Crt::JsonObject jsonObj;
+    Crt::JsonObject desiredObj;
 
     if (inputFile.empty())
     {
@@ -384,6 +385,15 @@ void SampleShadowFeature::readAndUpdateShadowFromFile()
             return;
         }
         setting.close();
+
+        ifstream settingDesired((expandedPath + + ".desired").c_str());
+        if (settingDesired.is_open())
+        {
+            std::string contents((std::istreambuf_iterator<char>(settingDesired)), std::istreambuf_iterator<char>());
+            desiredObj = Aws::Crt::JsonObject(contents.c_str());
+            settingDesired.close();
+            std::remove((expandedPath + + ".desired").c_str());
+        }
     }
 
     UpdateNamedShadowRequest updateNamedShadowRequest;
@@ -391,6 +401,7 @@ void SampleShadowFeature::readAndUpdateShadowFromFile()
     updateNamedShadowRequest.ShadowName = shadowName.c_str();
 
     ShadowState state;
+    state.Desired = desiredObj;
     state.Reported = jsonObj;
     updateNamedShadowRequest.State = state;
 
